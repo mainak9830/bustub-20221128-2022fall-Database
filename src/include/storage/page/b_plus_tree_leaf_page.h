@@ -61,6 +61,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto CopyData(MappingType *items, int size) -> void;
   auto Remove(const KeyType &key, const KeyComparator &comparator) -> bool;
   auto MoveAllTo(BPlusTreeLeafPage *dst_page) -> void;
+  auto GetItem(int index) const -> const MappingType &;
  private:
   page_id_t next_page_id_;
   // Flexible array member for page data.
