@@ -133,6 +133,24 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CopyData(MappingType *items, int size) -> void{
   IncreaseSize(size);
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, const KeyComparator &comparator) -> bool {
+  int index = KeyIndex(key, comparator);
+  if (comparator(array_[index].first, key) == 0) {
+    int size = GetSize();
+    std::move(array_ + index + 1, array_ + size, array_ + index);
+    IncreaseSize(-1);
+    return true;
+  }
+  return false;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *dst_page) -> void {
+  dst_page->CopyData(array_, GetSize());
+  dst_page->SetNextPageId(GetNextPageId());
+  SetSize(0);
+}
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;
 template class BPlusTreeLeafPage<GenericKey<16>, RID, GenericComparator<16>>;

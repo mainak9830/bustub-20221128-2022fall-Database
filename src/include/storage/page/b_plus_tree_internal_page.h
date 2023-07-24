@@ -50,6 +50,10 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto CopyData(MappingType *items, int size, BufferPoolManager *bpm) ->void;
   auto ValueIndex(const ValueType &value) const -> int;
   auto InsertNodeAfter(page_id_t new_page_id, const KeyType &key, page_id_t old_page_id)->void;
+  void InsertToStart(const KeyType &key, const ValueType &value, BufferPoolManager *bpm);
+  auto MoveAllTo(BPlusTreeInternalPage *dst_page, BufferPoolManager *bpm) -> void;
+  auto Remove(int index) -> void;
+  void InsertToEnd(const KeyType &key, const ValueType &value, BufferPoolManager *bpm);
  private:
   // Flexible array member for page data.
   MappingType array_[1];

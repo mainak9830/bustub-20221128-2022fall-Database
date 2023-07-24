@@ -79,7 +79,15 @@ class BPlusTree {
 
   auto Split(BPlusTreePage *page) -> BPlusTreePage*;
   auto InsertToParent(BPlusTreePage *old_page, BPlusTreePage *split_page, const KeyType &split_key) -> void;
+  void RedistributeOrMerge(BPlusTreePage *node);
+  template <typename Node>
+  auto RedistributeLeft(Node *sibling_node, Node *target_node, InternalPage *parent, int index)->void;
+   template <typename Node>
+  auto RedistributeRight(Node *sibling_node, Node *target_node, InternalPage *parent, int index) -> void;
+  template <typename Node>
+  auto Merge(Node *dst_node, Node *src_node, InternalPage *parent, int index) -> void;
 
+  
  private:
   void UpdateRootPageId(int insert_record = 0);
 
