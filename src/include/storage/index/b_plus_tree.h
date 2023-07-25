@@ -75,18 +75,18 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
 
   
-  auto FindLeaf(const KeyType &key) -> Page*;
+  auto FindLeaf(const KeyType &key, int mode, std::queue<Page *>& locks) -> Page*;
 
   auto Split(BPlusTreePage *page) -> BPlusTreePage*;
-  auto InsertToParent(BPlusTreePage *old_page, BPlusTreePage *split_page, const KeyType &split_key) -> void;
-  void RedistributeOrMerge(BPlusTreePage *node);
+  auto InsertToParent(BPlusTreePage *old_page, BPlusTreePage *split_page, const KeyType &split_key, std::queue<Page *>& locks) -> void;
+  void RedistributeOrMerge(BPlusTreePage *node, std::queue<Page *>& locks);
   template <typename Node>
   auto RedistributeLeft(Node *sibling_node, Node *target_node, InternalPage *parent, int index)->void;
    template <typename Node>
   auto RedistributeRight(Node *sibling_node, Node *target_node, InternalPage *parent, int index) -> void;
   template <typename Node>
-  auto Merge(Node *dst_node, Node *src_node, InternalPage *parent, int index) -> void;
-
+  auto Merge(Node *dst_node, Node *src_node, InternalPage *parent, int index, std::queue<Page *>& locks) -> void;
+  auto CheckEmpty() -> bool;
   
  private:
   void UpdateRootPageId(int insert_record = 0);
@@ -103,6 +103,7 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+  std::mutex root_lock_;
 };
 
 }  // namespace bustub

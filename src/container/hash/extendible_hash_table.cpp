@@ -165,7 +165,7 @@ auto ExtendibleHashTable<K, V>::RedistributeBucket(size_t directory_id, const K 
     }
     
     size_t d = GetGlobalDepth();
-    for(size_t i = (1 << (d-1));i < (1 << d);i++){
+    for(size_t i = (1 << (d-1));static_cast<int>(i) < (1 << d);i++){
       if(i == directory_other_id){
         continue;
       }
@@ -209,7 +209,7 @@ auto ExtendibleHashTable<K, V>::RedistributeBucket(size_t directory_id, const K 
     // 110
     //update pointers for the new bin
     size_t start = GetGlobalDepth()-this->dir_[directory_other_id]->GetDepth();
-    for(size_t offset = 1;offset < (1 << start);offset++){
+    for(size_t offset = 1;static_cast<int>(offset) < (1 << start);offset++){
       dir_[directory_other_id+(offset << dir_[directory_other_id]->GetDepth())] = dir_[directory_other_id];
     }
     
