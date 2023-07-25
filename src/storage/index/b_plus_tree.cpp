@@ -95,10 +95,11 @@ if (old_page->IsRootPage()) {
       //remove the locks
     while(!locks.empty()){
       locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
     }
 
-    buffer_pool_manager_->UnpinPage(root_page_id_, true);
+    // buffer_pool_manager_->UnpinPage(root_page_id_, true);
     return;
   }
 
@@ -112,6 +113,7 @@ if (old_page->IsRootPage()) {
 
     while(!locks.empty()){
       locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
     }
     return;
@@ -144,6 +146,7 @@ auto BPLUSTREE_TYPE::FindLeaf(const KeyType &key, int mode, std::queue<Page *>& 
       page->RLatch();
       locks.push(page);
       locks.front()->RUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
     }
     return page;
@@ -166,6 +169,7 @@ auto BPLUSTREE_TYPE::FindLeaf(const KeyType &key, int mode, std::queue<Page *>& 
       if(tree_page->GetSize() < tree_page->GetMaxSize()){
         while(!locks.empty()){
           locks.front()->WUnlatch();
+          buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
           locks.pop();
         }
       }
@@ -191,6 +195,7 @@ auto BPLUSTREE_TYPE::FindLeaf(const KeyType &key, int mode, std::queue<Page *>& 
     if(tree_page->GetSize() > tree_page->GetMinSize()){
         while(!locks.empty()){
           locks.front()->WUnlatch();
+          buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
           locks.pop();
         }
     }
@@ -238,9 +243,10 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     // page->WUnlatch();
     while(!ancestor_locks.empty()){
       ancestor_locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(ancestor_locks.front()->GetPageId(), false);
       ancestor_locks.pop();
     }
-    buffer_pool_manager_->UnpinPage(leaf->GetPageId(), false);
+    // buffer_pool_manager_->UnpinPage(leaf->GetPageId(), false);
     return false;
   }
   if (size <= leaf_max_size_) {
@@ -248,9 +254,10 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     // page->WUnlatch();
     while(!ancestor_locks.empty()){
       ancestor_locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(ancestor_locks.front()->GetPageId(), true);
       ancestor_locks.pop();
     }
-    buffer_pool_manager_->UnpinPage(leaf->GetPageId(), true);
+    // buffer_pool_manager_->UnpinPage(leaf->GetPageId(), true);
     return true;
   }
   
@@ -314,6 +321,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   if (!result) {
     while(!locks.empty()){
       locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
     }
     std::cout << "Already Removed operation, key: " << tree_page->GetSize() << " " << key.ToString() << " " << std::this_thread::get_id() << std::endl;
@@ -324,6 +332,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
 
     while(!locks.empty()){
       locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
     }
     std::cout << "Successful operation, key: " << key.ToString() << " " << std::this_thread::get_id() << std::endl;
@@ -334,6 +343,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   buffer_pool_manager_->UnpinPage(tree_page->GetPageId(), true);
   while(!locks.empty()){
       locks.front()->WUnlatch();
+      buffer_pool_manager_->UnpinPage(locks.front()->GetPageId(), true);
       locks.pop();
   }
   
@@ -452,7 +462,7 @@ void BPLUSTREE_TYPE::Merge(Node *dst_node, Node *src_node, InternalPage *parent,
   }
   std::cout << "size coalesing parent" << dst_node->GetSize() << std::endl; 
   parent->Remove(index);
-  if(parent->GetSize() == 0){
+  if(parent->GetSize() == 1){
     std::cout << "changing root " << dst_node->GetPageId() << std::endl; 
     parent->SetPageId(INVALID_PAGE_ID);
     root_lock_.lock();
