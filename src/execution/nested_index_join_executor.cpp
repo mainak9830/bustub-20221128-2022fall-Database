@@ -11,8 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/executors/nested_index_join_executor.h"
+#include <vector>
 #include "catalog/catalog.h"
 #include "storage/index/index.h"
+#include "storage/table/table_heap.h"
+#include "type/value.h"
 
 namespace bustub {
 
@@ -31,12 +34,24 @@ void NestIndexJoinExecutor::Init() {
   RID rid;
   IndexInfo *info_inner = exec_ctx_->GetCatalog()->GetIndex(plan_->GetIndexName(), plan_->GetIndexOid());
   Index *inner_index = info_inner->index_.get();
+  TableHeap* inner_table = exec_ctx_->GetCatalog()->GetTable(plan_->GetIndexOid())->table_.get();
   while(child_executor_->Next(&tuple, &rid)){
     // info_inner->
-    tuple.KeyFromTuple(child_executor_->GetOutputSchema(), plan_->OutputSchema(), const std::vector<uint32_t> &key_attrs)
+    // plan_->
+    Tuple index_key = tuple.KeyFromTuple(child_executor_->GetOutputSchema(), plan_->OutputSchema(), plan_->OutputSchema().GetUnlinedColumns());
+    std::vector<RID> *result={};
+    inner_index->ScanKey(index_key, result, exec_ctx_->GetTransaction());
+
+    Tuple inner_tuple;
+    for(auto& inner_rid : *result){
+      inner_table->GetTuple(inner_rid, &inner_tuple, exec_ctx_->GetTransaction());
+     
+      auto value = plan_->KeyPredicate()->EvaluateJoin(&tuple, child_executor_->GetOutputSchema(), &inner_tuple, plan_->OutputSchema());
+      result_.emplace_back(std::vector<Value>{value}, &GetOutputSchema());
+    }
   }
 
- }
+}
 
 auto NestIndexJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
     while(tracked_ < result_.size()){

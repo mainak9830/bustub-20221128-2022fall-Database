@@ -41,14 +41,10 @@ void NestedLoopJoinExecutor::Init() {
   while(left__executor_->Next(&left_tuple, &left_rid)){
     right__executor_->Init();
     while(right__executor_->Next(&right_tuple, &right_rid)){
-      std::vector<Value> output;
-
-      for(const auto &col : GetOutputSchema().GetColumns()){
-        auto value = plan_->predicate_->EvaluateJoin(&left_tuple, left__executor_->GetOutputSchema(), &right_tuple,
+       
+      auto value = plan_->predicate_->EvaluateJoin(&left_tuple, left__executor_->GetOutputSchema(), &right_tuple,
                                                        right__executor_->GetOutputSchema());
-        
-      }
-      result_.emplace_back(output, &GetOutputSchema());
+      result_.emplace_back(std::vector<Value>{value}, &GetOutputSchema());
 
     }
   }
