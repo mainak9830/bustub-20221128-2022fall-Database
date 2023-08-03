@@ -13,17 +13,51 @@
 #include <vector>
 
 #include "execution/executors/aggregation_executor.h"
+#include "storage/table/tuple.h"
 
 namespace bustub {
 
 AggregationExecutor::AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                                          std::unique_ptr<AbstractExecutor> &&child)
-    : AbstractExecutor(exec_ctx) {}
+    : AbstractExecutor(exec_ctx),
+    plan_(plan),
+    child_(std::move(child)),
+    aht_(plan_->GetAggregates(), plan_->GetAggregateTypes()),
+    aht_iterator_(aht_.Begin()) {}
 
-void AggregationExecutor::Init() {}
+void AggregationExecutor::Init() {
+    child_->Init();
 
-auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool { return false; }
+    Tuple tuple;
+    RID rid;
 
-auto AggregationExecutor::GetChildExecutor() const -> const AbstractExecutor * { return child_.get(); }
+    while(child_->Next(&tuple, &rid)){
+        aht_.InsertCombine(MakeAggregateKey(&tuple), MakeAggregateValue(&tuple));
+    }
+    aht_iterator_ = aht_.Begin();
+}
+
+auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
+    if (aht_iterator_ == aht_.End()) {
+        return false;
+    }
+    
+    
+    std::vector<Value> ret;
+
+    // const AggregateKey &agg_key = aht_iterator_.Key();
+    const AggregateValue &agg_value = aht_iterator_.Val();
+    
+    
+    *tuple = Tuple(agg_value.aggregates_, &plan_->OutputSchema());
+    ++aht_iterator_;
+    return true;
+    
+}
+
+auto AggregationExecutor::GetChildExecutor() const -> const AbstractExecutor * { 
+    return child_.get(); 
+}
+
 
 }  // namespace bustub

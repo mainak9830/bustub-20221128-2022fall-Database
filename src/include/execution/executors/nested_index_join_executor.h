@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -50,5 +51,8 @@ class NestIndexJoinExecutor : public AbstractExecutor {
  private:
   /** The nested index join plan node. */
   const NestedIndexJoinPlanNode *plan_;
+  size_t tracked_;
+  std::vector<Tuple> result_;
+  std::unique_ptr<AbstractExecutor> child_executor_;
 };
 }  // namespace bustub
