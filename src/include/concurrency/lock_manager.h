@@ -17,6 +17,7 @@
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -35,7 +36,7 @@ class TransactionManager;
  */
 class LockManager {
  public:
-  enum class LockMode { SHARED, EXCLUSIVE, INTENTION_SHARED, INTENTION_EXCLUSIVE, SHARED_INTENTION_EXCLUSIVE };
+  enum class LockMode { SHARED, EXCLUSIVE, INTENTION_SHARED, INTENTION_EXCLUSIVE, SHARED_INTENTION_EXCLUSIVE, NOT_LOCKED };
 
   /**
    * Structure to hold a lock request.
@@ -296,6 +297,8 @@ class LockManager {
    * Runs cycle detection in the background.
    */
   auto RunCycleDetection() -> void;
+
+  auto Dfs(txn_id_t u, txn_id_t *txn_id, std::set<txn_id_t>& visited) -> bool;
 
  private:
   /** Fall 2022 */

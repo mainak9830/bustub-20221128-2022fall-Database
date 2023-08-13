@@ -30,10 +30,18 @@ void DeleteExecutor::Init() {
 auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool { 
     Tuple deleted_tuple;
     RID deleted_rid;
-
+    Transaction *transaction = GetExecutorContext()->GetTransaction();
+    LockManager *lock_mgr = GetExecutorContext()->GetLockManager();
     if(completed_){
         return false;
     }
+
+    if (lock_mgr != nullptr) {
+        if (transaction->IsTableSharedLocked(plan_->TableOid())) {
+        lock_mgr->LockTable(transaction, LockManager::LockMode::EXCLUSIVE, plan_->TableOid());
+        } 
+    }
+
     int count = 0;
     while(child_executor_->Next(&deleted_tuple, &deleted_rid)){   
 
@@ -46,6 +54,14 @@ auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
             
             index->index_->DeleteEntry(deleted_tuple.KeyFromTuple(table_info_->schema_, *index->index_->GetKeySchema(), index->index_->GetKeyAttrs()), deleted_rid, exec_ctx_->GetTransaction());
         }
+        transaction->GetIndexWriteSet()->emplace_back(IndexWriteRecord(
+          deleted_rid, table_info_->oid_, WType::DELETE, deleted_tuple, index->index_oid_, exec_ctx_->GetCatalog()));
+        }
+    }
+
+
+    if (transaction->GetIsolationLevel() == IsolationLevel::READ_COMMITTED && lock_mgr != nullptr) {
+      lock_mgr->UnlockRow(transaction, plan_->TableOid(),deleted_rid);
     }
 
     Value outval(TypeId::INTEGER, count);

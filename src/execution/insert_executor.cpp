@@ -12,6 +12,8 @@
 
 #include <memory>
 
+#include "concurrency/lock_manager.h"
+#include "concurrency/transaction.h"
 #include "execution/executors/insert_executor.h"
 #include "storage/table/tuple.h"
 #include "type/type_id.h"
@@ -34,8 +36,16 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
     
     // std::vector<Tuple> child_tuples;
     // child_tuples.push_back(ctuple);
+
     if(completed_){
         return false;
+    }
+    Transaction *transaction = GetExecutorContext()->GetTransaction();
+    LockManager *lock_mgr = GetExecutorContext()->GetLockManager();
+    if (lock_mgr != nullptr) {
+        if (transaction->IsTableSharedLocked(plan_->TableOid())) {
+        lock_mgr->LockTable(transaction, LockManager::LockMode::EXCLUSIVE, plan_->TableOid());
+        } 
     }
     // std::cout << "size of clolumns in input schema" << table_info_->schema_.GetColumns().size() << std::endl; 
     int count = 0;
@@ -49,6 +59,9 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
         for(const auto &index : catalog_->GetTableIndexes(table_info_->name_)){
             
             index->index_->InsertEntry(tuple->KeyFromTuple(table_info_->schema_, *index->index_->GetKeySchema(), index->index_->GetKeyAttrs()), *rid, exec_ctx_->GetTransaction());
+            transaction->GetIndexWriteSet()->emplace_back(IndexWriteRecord(
+                *rid, table_info_->oid_, WType::INSERT, *tuple, index->index_oid_, exec_ctx_->GetCatalog()
+            ));
         }
         
         count++;

@@ -29,8 +29,21 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     if(iter_ == table_heap_->End()) {
         return false;
     }
-    // const Schema *output_schema = &GetOutputSchema();
 
+    
+    // const Schema *output_schema = &GetOutputSchema();
+    LockManager *lock_mgr = GetExecutorContext()->GetLockManager();
+    Transaction *txn = GetExecutorContext()->GetTransaction();
+    if (lock_mgr != nullptr) {
+    if (txn->GetIsolationLevel() != IsolationLevel::READ_UNCOMMITTED) {
+      if (!txn->IsRowSharedLocked(iter_->GetRid()) && !txn->IsRowExclusiveLocked(iter_->GetRid())) {
+        lock_mgr->LockRow(txn, iter_->GetRid());
+      }
+        }
+    }
+    if (txn->GetIsolationLevel() == IsolationLevel::READ_COMMITTED && lock_mgr != nullptr) {
+        lock_mgr->UnlockRow(txn, plan_->GetTableOid(), iter_->GetRid());
+    }
     *tuple = *iter_;
     *rid = iter_->GetRid();
     ++iter_;
